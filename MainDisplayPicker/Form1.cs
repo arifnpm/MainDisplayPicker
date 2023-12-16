@@ -23,7 +23,24 @@ namespace MainDisplayPicker
 		{
             var device = new DISPLAY_DEVICE();
             device.cb = Marshal.SizeOf(device);
-			if(NativeMethods.EnumDisplayDevices(null, 1, ref device, 0)) // check if display 2 available
+			// iterate for more than 1 active monitor
+			var monitorActiveCount = 0;
+			for (uint otherid = 0; NativeMethods.EnumDisplayDevices(null, otherid, ref device, 0); otherid++)
+			{
+				if (device.StateFlags.HasFlag(DisplayDeviceStateFlags.AttachedToDesktop))
+				{
+					device.cb = Marshal.SizeOf(device);
+					var otherDeviceMode = new DEVMODE();
+
+					NativeMethods.EnumDisplaySettings(device.DeviceName, -1, ref otherDeviceMode);
+
+					if(otherDeviceMode.dmPelsWidth>0 && otherDeviceMode.dmPelsHeight > 0)
+					{
+						monitorActiveCount++;
+                    }
+				}
+			}
+            if (monitorActiveCount>1)
 			{
 				btnExtend.Enabled = false;
 				btnShowThisOnly.Enabled = true;
