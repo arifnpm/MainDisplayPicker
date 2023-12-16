@@ -42,11 +42,13 @@ namespace MainDisplayPicker
 			}
             if (monitorActiveCount>1)
 			{
-				btnExtend.Enabled = false;
+                btnSetAsMain.Enabled = true;
+                btnExtend.Enabled = false;
 				btnShowThisOnly.Enabled = true;
 			} 
-			else
+			else // Only 1 active Monitor
 			{
+				btnSetAsMain.Enabled = false;
                 btnExtend.Enabled = true;
                 btnShowThisOnly.Enabled = false;
             }
