@@ -9,6 +9,12 @@ namespace MainDisplayPicker
 {
     public class MonitorChanger
     {
+        const UInt32 SDC_TOPOLOGY_INTERNAL = 0x00000001;
+        const UInt32 SDC_TOPOLOGY_CLONE = 0x00000002;
+        const UInt32 SDC_TOPOLOGY_EXTEND = 0x00000004;
+        const UInt32 SDC_TOPOLOGY_EXTERNAL = 0x00000008;
+        const UInt32 SDC_APPLY = 0x00000080;
+
         public static void SetAsPrimaryMonitor(uint id)
         {
             var device = new DISPLAY_DEVICE();
@@ -59,6 +65,77 @@ namespace MainDisplayPicker
 
             // Apply settings
             NativeMethods.ChangeDisplaySettingsEx(null, IntPtr.Zero, (IntPtr)null, ChangeDisplaySettingsFlags.CDS_NONE, (IntPtr)null);
+        }
+
+        public static void ShowOnlyMonitor(uint id)
+        {
+            var device = new DISPLAY_DEVICE();
+            var deviceMode = new DEVMODE();
+            device.cb = Marshal.SizeOf(device);
+
+            NativeMethods.EnumDisplayDevices(null, id, ref device, 0);
+            NativeMethods.EnumDisplaySettings(device.DeviceName, -1, ref deviceMode);
+            var offsetx = deviceMode.dmPosition.x;
+            var offsety = deviceMode.dmPosition.y;
+            deviceMode.dmPosition.x = 0;
+            deviceMode.dmPosition.y = 0;
+
+            NativeMethods.ChangeDisplaySettingsEx(
+                device.DeviceName,
+                ref deviceMode,
+                (IntPtr)null,
+                (ChangeDisplaySettingsFlags.CDS_SET_PRIMARY | ChangeDisplaySettingsFlags.CDS_UPDATEREGISTRY | ChangeDisplaySettingsFlags.CDS_NORESET),
+                IntPtr.Zero);
+
+            device = new DISPLAY_DEVICE();
+            device.cb = Marshal.SizeOf(device);
+
+            // Update remaining devices
+            for (uint otherid = 0; NativeMethods.EnumDisplayDevices(null, otherid, ref device, 0); otherid++)
+            {
+                if (device.StateFlags.HasFlag(DisplayDeviceStateFlags.AttachedToDesktop) && otherid != id)
+                {
+                    device.cb = Marshal.SizeOf(device);
+                    var otherDeviceMode = new DEVMODE();
+
+                    NativeMethods.EnumDisplaySettings(device.DeviceName, -1, ref otherDeviceMode);
+
+                    otherDeviceMode.dmPelsWidth = 0;
+                    otherDeviceMode.dmPelsHeight = 0;
+
+                    NativeMethods.ChangeDisplaySettingsEx(
+                        device.DeviceName,
+                        ref otherDeviceMode,
+                        (IntPtr)null,
+                        (ChangeDisplaySettingsFlags.CDS_UPDATEREGISTRY | ChangeDisplaySettingsFlags.CDS_NORESET),
+                        IntPtr.Zero);
+                }
+
+                device.cb = Marshal.SizeOf(device);
+            }
+
+            // Apply settings
+            NativeMethods.ChangeDisplaySettingsEx(null, IntPtr.Zero, (IntPtr)null, ChangeDisplaySettingsFlags.CDS_NONE, (IntPtr)null);
+        }
+
+        public static void CloneDisplays()
+        {
+            NativeMethods.SetDisplayConfig(0, IntPtr.Zero, 0, IntPtr.Zero, (SDC_APPLY | SDC_TOPOLOGY_CLONE));
+        }
+
+        public static void ExtendDisplays()
+        {
+            NativeMethods.SetDisplayConfig(0, IntPtr.Zero, 0, IntPtr.Zero, (SDC_APPLY | SDC_TOPOLOGY_EXTEND));
+        }
+
+        public static void ExternalDisplay()
+        {
+            NativeMethods.SetDisplayConfig(0, IntPtr.Zero, 0, IntPtr.Zero, (SDC_APPLY | SDC_TOPOLOGY_EXTERNAL));
+        }
+
+        public static void InternalDisplay()
+        {
+            NativeMethods.SetDisplayConfig(0, IntPtr.Zero, 0, IntPtr.Zero, (SDC_APPLY | SDC_TOPOLOGY_INTERNAL));
         }
     }
 
@@ -215,6 +292,9 @@ namespace MainDisplayPicker
 
         [DllImport("user32.dll")]
         public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern long SetDisplayConfig(uint numPathArrayElements, IntPtr pathArray, uint numModeArrayElements, IntPtr modeArray, uint flags);
     }
 
     [StructLayout(LayoutKind.Sequential)]
