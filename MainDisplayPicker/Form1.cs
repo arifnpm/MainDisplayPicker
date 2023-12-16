@@ -78,23 +78,35 @@ namespace MainDisplayPicker
 
 		private void btnSetAsMain_Click(object sender, EventArgs e)
 		{
-			Screen screen = Screen.FromControl(this);
+            this.btnSetAsMain.Enabled = false;
+            this.btnExtend.Enabled = false;
+            this.btnShowThisOnly.Enabled = false;
+            Screen screen = Screen.FromControl(this);
 			string display_number = Regex.Match(screen.DeviceName, @"\d+").Value;
 			MonitorChanger.SetAsPrimaryMonitor(uint.Parse(display_number)-1);
+			timer1.Interval = 2000;
 			timer1.Start();
 		}
 
         private void btnExtend_Click(object sender, EventArgs e)
         {
+            this.btnSetAsMain.Enabled = false;
+            this.btnExtend.Enabled = false;
+            this.btnShowThisOnly.Enabled = false;
             MonitorChanger.ExtendDisplays();
+            timer1.Interval = 5000;
             timer1.Start();
         }
 
         private void btnShowThisOnly_Click(object sender, EventArgs e)
         {
+            this.btnSetAsMain.Enabled = false;
+            this.btnExtend.Enabled = false;
+            this.btnShowThisOnly.Enabled = false;
             Screen screen = Screen.FromControl(this);
             string display_number = Regex.Match(screen.DeviceName, @"\d+").Value;
             MonitorChanger.ShowOnlyMonitor(uint.Parse(display_number) - 1);
+            timer1.Interval = 5000;
             timer1.Start();
         }
     }
